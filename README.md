@@ -1,52 +1,46 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/afleishaker/afleishaker/master/assets/header.gif" alt="Adam Fleishaker">
-  <h2>Hi there! <img src="https://raw.githubusercontent.com/afleishaker/afleishaker/master/assets/wave.gif" width="30px" alt=":wave:"> I'm Adam, a software engineer, New Yorker, and <a href="http://brandeis.edu">Brandeis University</a> '21 alum with a passion for civic tech, growth marketing, and helping others.<br><br>I'm currently working as a Software Engineer I at <a href="https://www.disneystreaming.com/">Disney Streaming</a>.</h2>
-  <p align="center">
-      <a href="https://adamfleishaker.com/">
-        :man_technologist: Website
-      </a>&nbsp;
-      <a href="http://adamfleishaker.com/assets/resume.pdf">
-        :page_facing_up: Resume
-      </a>&nbsp;
-      <a href="https://www.linkedin.com/in/adamfleishaker/">
-        :briefcase: LinkedIn
-      </a>
-  </p>
-</p>
+# :rocket::mountain: localstack-terraform-demo
 
-<table>
-  <tr>
-    <td>
-      <p align="center">
-        <h3>In my free time, you can likely find me doing one of the following...</h3>
-      </p>
-    </td>
-    <td>
-      <p align="center">
-        <h3>I've worked in closed source tech not on this GitHub, including...</h3>
-      </p>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <p>
-        <p>:studio_microphone: Singing a cappella and making covers of various tunes, or...</p>
-        <p>:computer: Working in graphic design or coding some new idea here!</p>
-      </p>
-    </td>
-    <td>
-      <p>
-        <a href="https://www.disneystreaming.com/">
-          <p><img src="https://raw.githubusercontent.com/afleishaker/afleishaker/master/assets/dss.png" width="25px" height="25px" alt="DSS" /> Software Engineering Intern at Disney Streaming Services (Summer 2019 and Summer 2020)</p>
-        </a>
-        <a href="https://www.apptopia.com/">
-          <p><img src="https://raw.githubusercontent.com/afleishaker/afleishaker/master/assets/apptopia.png" width="25px" height="25px" alt="Apptopia" /> Growth Marketing & Technical Intern at Apptopia (Summer 2018)</p>
-        </a>
-      </p>
-    </td>
-  </tr>
-</table>
+Want to be able to test your code by _leveraging AWS resources locally?_ 
+Confirm the impact of configurations and _IaC you've expressed with [Terraform](https://www.terraform.io)?_ 
 
-<h3 align="center">Finally, go check out my open source projects below! Thanks for visiting my profile!</h3>
+[Localstack](https://github.com/localstack) aggregates various service providers that implement emulations of the AWS APIs. It also supports various [IaC integrations](https://docs.localstack.cloud/user-guide/integrations/terraform/) to spin up requested infrastructure in an automated fashion.
 
-<h5 align="right"><i>Psst!</i> Wondering how to make a profile README? Huge credit to this <a href="https://www.aboutmonica.com/blog/how-to-create-a-github-profile-readme">article</a> for the idea!</h5>
+This demo provides a skeleton of various AWS resources in Terraform to test or build off of, and a docker-compose with Localstack and [dynamodb-admin](https://github.com/aaronshaf/dynamodb-admin) for easy DB management.
+
+### Architecture
+
+![Architecture](architecture.png)
+
+The base Terraform script without any modification will stand up an SQS queue, a Lambda which has an event source mapping from the 
+queue, and a DynamoDB table.
+
+The demo flow goes as follows:
+1. Write a message to our input SQS queue
+2. Localstack's event source mapping handler will acknowledge receipt of the message and spin up a separate container to emulate the Lambda
+3. The Lambda will wrap the incoming message body with a corresponding ID and timestamp and then persist this record to our output DynamoDB table
+
+### Usage
+#### Pre-steps
+1. Install [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli) to actually execute the pre-provided Terraform script or your own
+2. Install [terraform-local](https://pypi.org/project/terraform-local/) with pip to get a Terraform wrapper macro, `tflocal`, which points your Terraform commands to our Localstack
+3. Install [awscli-local](https://pypi.org/project/awscli-local/) with pip to get an AWS CLI wrapper macro, `awslocal`, which points your AWS CLI commands to our Localstack
+4. (If wanting to make changes) Modify this repo's main.tf Terraform script to add your intended AWS resources
+
+#### Execute
+1. Stand up the containers with: `docker-compose up`
+2. Apply your Terraform infrastructure to the Localstack container with:
+```
+tflocal init
+tflocal apply
+```
+3. Once changes are applied, you can use `awslocal` replacing any `awscli` command to test your infrastructure!
+
+At this point, if you wish to test our demo flow functionality:
+1. Submit a message to the input queue with: `awslocal sqs send-message --queue-url http://localhost:4566/000000000000/input_queue --message-body "Any message can go here!"`
+2. Confirm in your Docker Desktop that a lambda container has been spun up and/or that the Localstack container has acknowledged receiving the message
+3. Confirm via dynamodb-admin that the event was persisted to our output table by accessing the UI at: http://localhost:8001
+
+### Next Steps
+Try forking this repo and add more AWS resources using the [Terraform docs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs) as a guide!
+
+Be mindful though, Localstack doesn't guarantee full AWS API coverage for all resources, so check their [feature coverage table](https://docs.localstack.cloud/user-guide/aws/feature-coverage/) to confirm that they support any resources that you're adding.

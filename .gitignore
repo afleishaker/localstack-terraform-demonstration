@@ -1,4 +1,7 @@
 .idea
-# Project exclude paths
-/project/target/
-/target/
+.bsp
+.terraform
+project
+volume
+target
+terraform.tfstate*
