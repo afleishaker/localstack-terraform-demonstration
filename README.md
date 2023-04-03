@@ -1,4 +1,4 @@
-# :rocket::mountain: localstack-terraform-demo
+# :rocket::mountain: localstack-terraform-demonstration
 
 Want to be able to test your code by _leveraging AWS resources locally?_ 
 Confirm the impact of configurations and _IaC you've expressed with [Terraform](https://www.terraform.io)?_ 
